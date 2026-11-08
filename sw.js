@@ -10,7 +10,7 @@
    Tipp: Wenn du Dateien änderst, erhöhe die Versionsnummer unten,
    damit alle Geräte sicher die neue Version bekommen.
    ========================================================= */
-const CACHE = 'winter-arc-v1';
+const CACHE = 'winter-arc-v2';
 
 const ASSETS = [
   './',
@@ -24,6 +24,7 @@ const ASSETS = [
   './js/icons.js',
   './js/quotes.js',
   './js/suggestions.js',
+  './js/reminder.js',
   './js/utils.js',
   './js/ui/overlay.js',
   './js/ui/snow.js',

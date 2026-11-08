@@ -2,7 +2,7 @@
 
 **Dein Habit Tracker für den Winter Arc.** Während alle Winterschlaf machen, baust du dich auf.
 
-Clean, schwarz-weiß und im Apple-Look. Läuft im Browser und lässt sich auf dem iPhone wie eine echte App installieren, auch offline.
+Radikal clean im Apple-Look: **nur Tiefschwarz und Weiß, kein Grau.** Läuft im Browser und lässt sich auf dem iPhone wie eine echte App installieren, auch offline.
 
 ---
 
@@ -12,14 +12,32 @@ Clean, schwarz-weiß und im Apple-Look. Läuft im Browser und lässt sich auf de
 |---|---|
 | **Eigener Zeitraum** | Startdatum und Dauer (1–365 Tage) frei wählbar, jederzeit änderbar |
 | **Habits** | Startet leer, mit 13 Vorschlägen: direkt hinzufügen (`+`) oder vorher anpassen |
+| **Rhythmus pro Habit** | Täglich, feste Tage (z. B. Mo/Mi/Fr) oder flexibel X-mal pro Woche |
 | **Tages-Leiste** | Durch alle Arc-Tage wischen, jeder Tag mit eigenem Fortschrittsring |
 | **Fortschrittsring** | Zeigt, wie viel du heute geschafft hast. Perfekter Tag = Schneefall ❄ |
-| **Streaks** | Serien pro Habit und für perfekte Tage (heute zählt erst, wenn er vorbei ist) |
-| **Kalender-Heatmap** | Alle Arc-Tage auf einen Blick: je heller, desto mehr geschafft |
+| **Streaks** | Serien pro Habit und für perfekte Tage. Pausentage und "heute noch offen" brechen keine Serie |
+| **Kalender-Heatmap** | Alle Arc-Tage auf einen Blick: Jedes Kästchen füllt sich wie ein Akku |
 | **Tagesnotiz** | Kurzes Journal pro Tag, speichert automatisch |
 | **Gedanke des Tages** | Jeden Tag ein neues Motivations-Zitat |
+| **Erinnerung** | Täglicher Kalender-Wecker (.ics) + Banner in der App, wenn noch was offen ist |
 | **Backup** | Daten als JSON exportieren und wieder importieren |
 | **Offline & installierbar** | PWA mit Service Worker |
+
+### Die drei Rhythmen
+
+| Rhythmus | Beispiel | Wie er zählt |
+|---|---|---|
+| **Täglich** | Kalt duschen | Jeden Tag fällig |
+| **Feste Tage** | Gym Mo · Mi · Fr | Nur an diesen Tagen fällig, an den anderen ist Pause (Serie läuft weiter) |
+| **X pro Woche** | Laufen 3× pro Woche | Egal wann. Zählt als **Bonus**: abhaken = +1, auslassen kostet keinen perfekten Tag. Serie wird in **Wochen** gezählt |
+
+### Erinnerung
+
+Echte Push-Nachrichten bei geschlossener App bräuchten einen eigenen Server. Darum macht Winter Arc es anders:
+
+1. **Einstellungen → Erinnerung** einschalten und eine Uhrzeit wählen
+2. **„Wecker in Kalender laden“** tippen: Du bekommst eine `.ics`-Datei, die dein iPhone als täglichen Termin mit Alarm übernimmt. Er klingelt zuverlässig, auch wenn die App zu ist
+3. Ab der Uhrzeit zeigt dir der **Heute**-Tab außerdem ein Banner: *„Noch 2 Habits offen“*
 
 ---
 
@@ -63,7 +81,8 @@ WARC/
 └── js/
     ├── app.js            ← Startpunkt: verbindet alles, reagiert auf Klicks
     ├── store.js          ← Datenspeicher (localStorage) + alle Änderungen
-    ├── stats.js          ← Rechnet Streaks, Quoten, Fortschritt aus
+    ├── stats.js          ← Rechnet Streaks, Quoten, Fortschritt & Rhythmen aus
+    ├── reminder.js       ← Kalender-Wecker (.ics) & "Noch X offen"-Banner
     ├── dates.js          ← Datum-Helfer ("2026-11-04" rechnen & formatieren)
     ├── icons.js          ← Alle Icons als SVG
     ├── quotes.js         ← Motivations-Zitate
@@ -100,10 +119,12 @@ Die Oberfläche ändert nie direkt Daten. Sie ruft eine Funktion im Store auf (`
 
 ```js
 {
-  arc:    { start: "2026-11-04", days: 90 },
-  habits: [{ id: "…", name: "Gym", icon: "dumbbell", since: "2026-11-04" }],
-  logs:   { "2026-11-04": ["id-von-gym", "id-von-wasser"] },  // erledigt pro Tag
-  notes:  { "2026-11-04": "Heute 5 km gelaufen" }
+  arc:      { start: "2026-11-04", days: 90 },
+  habits:   [{ id: "…", name: "Gym", icon: "dumbbell", since: "2026-11-04",
+               schedule: { type: "days", days: [0, 2, 4] } }],       // Mo, Mi, Fr
+  logs:     { "2026-11-04": ["id-von-gym", "id-von-wasser"] },  // erledigt pro Tag
+  notes:    { "2026-11-04": "Heute 5 km gelaufen" },
+  reminder: { enabled: true, time: "20:00" }
 }
 ```
 
@@ -121,9 +142,23 @@ Statt jedem Button einen eigenen Klick-Listener zu geben, hört `app.js` **einma
 actions[target.dataset.action](target);   // → actions.toggle(target)
 ```
 
-### 4. Design-Tokens
+### 4. Design-Tokens & Schwarz-Weiß-Regeln
 
-Alle Farben, Radien und Animationskurven stehen ganz oben in `css/style.css` unter `:root`. Willst du z. B. eine Akzentfarbe, änderst du **eine** Zeile und sie wirkt überall.
+Alle Farben, Linien, Radien und Animationskurven stehen ganz oben in `css/style.css` unter `:root`. Es gibt genau zwei Farben: `--bg: #000` und `--fg: #fff`.
+
+Ohne Grau braucht man andere Mittel für Hierarchie:
+
+| Bedeutung | Darstellung |
+|---|---|
+| offen / inaktiv | weiße **Umrandung** |
+| erledigt / ausgewählt | weiß **gefüllt**, schwarze Schrift |
+| kommt noch | **gestrichelt** |
+| deaktiviert | **durchgestrichen** |
+| wichtig vs. Nebeninfo | **Größe & Schriftdicke** |
+
+### 5. Serien mit "Pausen"
+
+In `stats.js` gibt jede Prüfung `true` (geschafft), `false` (verpasst) oder `null` (zählt nicht) zurück. `null` wird einfach übersprungen. So brechen Pausentage und "heute ist noch nicht vorbei" keine Serie ab.
 
 ---
 

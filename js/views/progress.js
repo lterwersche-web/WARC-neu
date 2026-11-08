@@ -6,7 +6,7 @@
 import { icon } from '../icons.js';
 import { esc, plural } from '../utils.js';
 import { addDays, weekdayIndex, dayOfMonth, formatShort, monthShort } from '../dates.js';
-import { dayProgress, habitStats, overallStats, rangeKeys } from '../stats.js';
+import { dayProgress, habitStats, overallStats, rangeKeys, scheduleLabel } from '../stats.js';
 import { header } from './components.js';
 
 export function renderProgress(el, ctx) {
@@ -46,7 +46,7 @@ export function renderProgress(el, ctx) {
       ${tile('checkCircle', Math.round(o.rate * 100), '%', 'Erfüllt')}
       ${tile('star', o.perfectDays, '', 'Perfekte Tage')}
     </div>
-    <p class="footnote">Serien zählen perfekte Tage, also Tage, an denen du alle Habits geschafft hast.</p>
+    <p class="footnote">Serien zählen perfekte Tage, also Tage, an denen du alle fälligen Habits geschafft hast. Pausentage unterbrechen keine Serie.</p>
 
     <div class="section-head"><h2 class="section-title">Kalender</h2></div>
     <section class="card heat-card">${heatmap(ctx)}</section>
@@ -66,15 +66,8 @@ function tile(iconName, value, unit, label) {
 
 /* ---------- Kalender-Heatmap ----------
    Jede Zeile = eine Woche (Mo–So), jedes Kästchen = ein Tag.
-   Je mehr erledigt, desto heller leuchtet das Kästchen. */
-function level(ratio) {
-  if (ratio <= 0) return 'l0';
-  if (ratio < 1 / 3) return 'l1';
-  if (ratio < 2 / 3) return 'l2';
-  if (ratio < 1) return 'l3';
-  return 'l4';
-}
-
+   Je mehr erledigt, desto weiter füllt sich das Kästchen von unten
+   mit Weiß – wie ein Akku. (--fill steuert die Füllhöhe im CSS.) */
 function heatmap(ctx) {
   const { state, today, info } = ctx;
   const gridStart = addDays(info.start, -weekdayIndex(info.start));
@@ -100,9 +93,9 @@ function heatmap(ctx) {
         html += `<span class="cell future" style="--i:${i++}"></span>`;
       } else {
         const p = dayProgress(state, k);
-        const lvl = p.total === 0 ? 'none' : level(p.ratio);
-        const label = `${formatShort(k)}: ${p.done} von ${p.total}`;
-        html += `<button type="button" class="cell ${lvl} ${k === today ? 'today' : ''}" style="--i:${i++}" data-action="heat-day" data-date="${k}" aria-label="${label}" title="${label}"></button>`;
+        const fill = p.active ? Math.round(p.ratio * 100) : 0;
+        const label = p.active ? `${formatShort(k)}: ${p.done} von ${p.total}` : `${formatShort(k)}: Pause`;
+        html += `<button type="button" class="cell ${p.active ? '' : 'rest'} ${k === today ? 'today' : ''}" style="--i:${i++};--fill:${fill}%" data-action="heat-day" data-date="${k}" aria-label="${label}" title="${label}"></button>`;
       }
     }
   }
@@ -110,7 +103,9 @@ function heatmap(ctx) {
   return `
     <div class="heat">${html}</div>
     <div class="heat-legend">
-      <span>Weniger</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>Mehr</span>
+      <span class="legend-item"><i style="--fill:0%"></i><i style="--fill:50%"></i><i style="--fill:100%"></i>0–100&thinsp;%</span>
+      <span class="legend-item"><i class="rest"></i>Pause</span>
+      <span class="legend-item"><i class="future"></i>Kommt noch</span>
     </div>`;
 }
 
@@ -129,6 +124,7 @@ function habitStatsList(ctx) {
     .map((h) => {
       const s = habitStats(state, h, info, today);
       const pct = Math.round(s.rate * 100);
+      const unit = s.unit === 'week' ? 'Wochen' : 'Tage';
       return `
         <div class="stat-row li">
           <span class="habit-icon">${icon(h.icon)}</span>
@@ -136,9 +132,10 @@ function habitStatsList(ctx) {
             <div class="stat-top"><span class="habit-name">${esc(h.name)}</span><span class="stat-pct">${pct}<small>%</small></span></div>
             <div class="bar"><span style="width:${pct}%"></span></div>
             <div class="habit-meta">
-              ${icon('flame', { size: 12, stroke: 2.2 })}<span>${s.current}</span>
+              <span>${scheduleLabel(h.schedule)}</span>
+              <span class="sep">·</span>${icon('flame', { size: 12, stroke: 2.2 })}<span>${s.current}</span>
               <span class="sep">·</span><span>Rekord ${s.best}</span>
-              <span class="sep">·</span><span>${s.done}/${s.total} Tage</span>
+              <span class="sep">·</span><span>${s.done}/${s.total} ${unit}</span>
             </div>
           </div>
         </div>`;

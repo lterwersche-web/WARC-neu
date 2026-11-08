@@ -1,12 +1,14 @@
 /* =========================================================
    WINTER ARC – Design System
-   Look: Apple / iOS 26, Dark Mode, Schwarz & Weiß.
+   Look: Apple / iOS, aber radikal: NUR Tiefschwarz & Weiß.
+   Kein Grau. Hierarchie entsteht durch Größe, Schriftdicke,
+   weiße Linien und gefüllte (= aktiv) vs. umrandete (= offen) Flächen.
 
    Aufbau dieser Datei:
-   1. Design-Tokens (Farben, Radien, Animationen)
+   1. Design-Tokens (Farben, Linien, Radien, Animationen)
    2. Basis (Reset, Schrift)
    3. Layout & Typografie
-   4. Karten & Listen
+   4. Karten, Listen & Buttons
    5. Heute-Ansicht
    6. Fortschritt-Ansicht
    7. Habits & Einstellungen
@@ -17,29 +19,18 @@
    ========================================================= */
 
 /* ---------- 1. Design-Tokens ----------
-   Alle Farben & Maße an EINER Stelle. Willst du was ändern,
-   änderst du es nur hier – und es wirkt überall. */
+   Alles an EINER Stelle. Änderst du hier was, wirkt es überall. */
 :root {
   color-scheme: dark;
 
-  /* Farben (an iOS Dark Mode angelehnt) */
-  --bg: #000;
-  --surface: #1c1c1e;
-  --surface-2: #2c2c2e;
-  --surface-3: #3a3a3c;
-  --label: #fff;
-  --label-2: rgba(235, 235, 245, 0.6);
-  --label-3: rgba(235, 235, 245, 0.32);
-  --label-4: rgba(235, 235, 245, 0.18);
-  --separator: rgba(84, 84, 88, 0.55);
+  --bg: #000;          /* Tiefschwarz */
+  --fg: #fff;          /* Reinweiß */
+  --line: 1px;         /* Stärke der feinen weißen Linien */
 
-  /* Radien (Apple liebt runde Ecken) */
-  --radius-xl: 26px;
   --radius-l: 22px;
   --radius-m: 14px;
-  --radius-s: 10px;
 
-  /* Animationen: Apples typische "weiche" Kurve + eine mit leichtem Nachfedern */
+  /* Apples typische "weiche" Kurve + eine mit leichtem Nachfedern */
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
   --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 
@@ -73,7 +64,7 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   background: var(--bg);
-  color: var(--label);
+  color: var(--fg);
   font-family: var(--font);
   font-size: 17px;
   line-height: 1.35;
@@ -106,31 +97,38 @@ textarea {
   color: inherit;
 }
 
+/* Platzhalter sind die EINZIGE Ausnahme mit Transparenz –
+   sonst sähen sie aus wie echter, getippter Text. */
+::placeholder {
+  color: var(--fg);
+  opacity: 0.45;
+}
+
 svg {
   display: block;
   flex-shrink: 0;
 }
 
 :focus-visible {
-  outline: 2px solid var(--label);
-  outline-offset: 2px;
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
   border-radius: 8px;
 }
 
 b {
-  font-weight: 600;
-  color: var(--label);
+  font-weight: 700;
 }
 
-/* Unten ein sanfter Verlauf, damit Inhalte schön unter der Tab-Bar verschwinden */
+/* Unten eine tiefschwarze Fläche hinter der Tab-Bar (bewusst KEIN Verlauf,
+   denn ein Verlauf würde Inhalte grau ausblenden) */
 body.has-tabbar::after {
   content: "";
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  height: calc(var(--safe-bottom) + 110px);
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.92) 70%);
+  height: calc(var(--safe-bottom) + 88px);
+  background: var(--bg);
   pointer-events: none;
   z-index: 10;
 }
@@ -162,9 +160,8 @@ body.has-tabbar::after {
 .eyebrow {
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--label-2);
 }
 
 .title-row {
@@ -177,14 +174,14 @@ body.has-tabbar::after {
 
 .large-title {
   margin: 0;
-  font-size: 34px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.12;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
 }
 
 .pill {
@@ -194,25 +191,26 @@ body.has-tabbar::after {
   flex-shrink: 0;
   height: 32px;
   padding: 0 13px;
+  border: var(--line) solid var(--fg);
   border-radius: 999px;
-  background: var(--surface);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .pill-dim {
-  color: var(--label-3);
+  font-weight: 400;
 }
 
 .pill-btn {
-  transition: transform 0.25s var(--ease), background 0.2s;
+  transition: transform 0.25s var(--ease), background 0.2s, color 0.2s;
 }
 
 .pill-btn:active {
   transform: scale(0.94);
-  background: var(--surface-2);
+  background: var(--fg);
+  color: var(--bg);
 }
 
 .link-btn {
@@ -221,70 +219,70 @@ body.has-tabbar::after {
   gap: 4px;
   padding: 6px 2px;
   font-size: 17px;
-  font-weight: 500;
-  color: var(--label);
-  transition: opacity 0.2s;
+  font-weight: 600;
+  transition: transform 0.2s var(--ease);
 }
 
 .link-btn:active {
-  opacity: 0.45;
+  transform: scale(0.92);
 }
 
 .app > .section-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 0 4px;
-  margin-top: 30px;
+  margin-top: 32px;
   margin-bottom: -2px;
+  padding: 0 4px;
 }
 
 .section-title {
   margin: 0;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .section-label {
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--label-2);
   padding: 0 16px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .app > .section-label {
-  margin-top: 30px;
+  margin-top: 32px;
 }
 
 .footnote {
   margin: 0;
   padding: 0 16px;
   font-size: 13px;
-  line-height: 1.4;
-  color: var(--label-2);
+  font-weight: 400;
+  line-height: 1.45;
 }
 
 .app > .footnote {
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
-/* ---------- 4. Karten & Listen ---------- */
+/* ---------- 4. Karten, Listen & Buttons ---------- */
 .card {
-  background: var(--surface);
-  border-radius: var(--radius-l);
   padding: 18px;
+  border: var(--line) solid var(--fg);
+  border-radius: var(--radius-l);
+  background: var(--bg);
 }
 
 .list {
-  background: var(--surface);
-  border-radius: var(--radius-l);
   overflow: hidden;
+  border: var(--line) solid var(--fg);
+  border-radius: var(--radius-l);
+  background: var(--bg);
 }
 
-/* Trennlinien zwischen Listeneinträgen (iOS-typisch eingerückt) */
+/* Trennlinien zwischen Listeneinträgen (Haarlinie, iOS-typisch eingerückt) */
 .li {
   position: relative;
 }
@@ -296,7 +294,7 @@ body.has-tabbar::after {
   right: 0;
   left: var(--inset, 16px);
   height: 1px;
-  background: var(--separator);
+  background: var(--fg);
   transform: scaleY(0.5);
   transform-origin: top;
   pointer-events: none;
@@ -311,7 +309,7 @@ body.has-tabbar::after {
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 52px;
+  min-height: 54px;
   padding: 8px 16px;
   text-align: left;
 }
@@ -322,23 +320,26 @@ body.has-tabbar::after {
 
 .row-value {
   margin-left: auto;
-  color: var(--label-2);
   font-variant-numeric: tabular-nums;
 }
 
 .row-btn {
-  transition: background 0.2s;
+  transition: background 0.15s, color 0.15s;
 }
 
-.row-btn:active {
-  background: var(--surface-2);
+.row-btn:active:not(:disabled) {
+  background: var(--fg);
+  color: var(--bg);
 }
 
-.row-btn .icon {
-  color: var(--label-2);
+.row-btn .chev {
+  margin-left: auto;
 }
 
-/* Buttons */
+.row-btn:disabled {
+  text-decoration: line-through;
+}
+
 .btn-primary,
 .btn-secondary {
   display: flex;
@@ -349,24 +350,29 @@ body.has-tabbar::after {
   height: 54px;
   border-radius: 16px;
   font-size: 17px;
-  font-weight: 600;
-  transition: transform 0.25s var(--ease), opacity 0.2s, background 0.2s;
+  font-weight: 700;
+  transition: transform 0.25s var(--ease), background 0.15s, color 0.15s;
 }
 
 .btn-primary {
-  background: var(--label);
+  background: var(--fg);
   color: var(--bg);
 }
 
 .btn-secondary {
-  background: var(--surface);
-  color: var(--label);
+  border: var(--line) solid var(--fg);
+  background: var(--bg);
+  color: var(--fg);
 }
 
 .btn-primary:active,
 .btn-secondary:active {
   transform: scale(0.97);
-  opacity: 0.85;
+}
+
+.btn-secondary:active {
+  background: var(--fg);
+  color: var(--bg);
 }
 
 .btn-inline {
@@ -383,32 +389,31 @@ body.has-tabbar::after {
 
 /* Leere Zustände */
 .empty {
-  text-align: center;
   padding: 32px 22px 28px;
+  text-align: center;
 }
 
 .empty-icon {
   width: 68px;
   height: 68px;
   margin: 0 auto 16px;
-  border-radius: 22px;
-  background: var(--surface-2);
   display: grid;
   place-items: center;
+  border: var(--line) solid var(--fg);
+  border-radius: 22px;
 }
 
 .empty h3 {
   margin: 0 0 6px;
   font-size: 21px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .empty p {
-  margin: 0 auto 20px;
   max-width: 300px;
+  margin: 0 auto 20px;
   font-size: 15px;
-  color: var(--label-2);
 }
 
 .empty-small {
@@ -419,8 +424,21 @@ body.has-tabbar::after {
   margin-bottom: 0;
 }
 
+.empty-small .empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+}
+
 .empty-small .btn-inline {
   margin-top: 16px;
+}
+
+.empty .rest-list {
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
 }
 
 /* ---------- 5. Heute-Ansicht ---------- */
@@ -440,8 +458,6 @@ body.has-tabbar::after {
   overflow-x: auto;
   scroll-snap-type: x proximity;
   scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
 }
 
 .strip::-webkit-scrollbar {
@@ -457,29 +473,39 @@ body.has-tabbar::after {
   padding: 9px 0 10px;
   border-radius: 18px;
   scroll-snap-align: center;
-  transition: background 0.3s var(--ease), opacity 0.3s, transform 0.25s var(--ease);
+  transition: background 0.3s var(--ease), color 0.3s, transform 0.25s var(--ease);
 }
 
 .day:active:not(:disabled) {
   transform: scale(0.92);
 }
 
+/* Ausgewählter Tag: invertiert (weiß gefüllt, schwarze Schrift) */
 .day.selected {
-  background: var(--surface);
+  background: var(--fg);
+  color: var(--bg);
 }
 
-.day:disabled {
-  opacity: 0.28;
+.day.selected .ring-track,
+.day.selected .ring-bar {
+  stroke: var(--bg);
 }
 
 .day-wd {
   font-size: 12px;
-  font-weight: 600;
-  color: var(--label-2);
+  font-weight: 700;
 }
 
-.day.is-today .day-wd {
-  color: var(--label);
+.day.future .day-wd,
+.day.future .day-num {
+  font-weight: 400;
+}
+
+/* Heute (wenn nicht ausgewählt): unterstrichen */
+.day.is-today:not(.selected) .day-wd {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
 }
 
 .day-dot {
@@ -499,39 +525,81 @@ body.has-tabbar::after {
   display: grid;
   place-items: center;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-/* Fortschrittsringe */
+/* Fortschrittsringe: dünne weiße Spur + dicker weißer Balken */
 .ring {
   width: 100%;
   height: 100%;
-  transform: rotate(-90deg);
   overflow: visible;
+  transform: rotate(-90deg);
 }
 
 .ring-track {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.12);
+  stroke: var(--fg);
+}
+
+.ring-track.dashed {
+  stroke-dasharray: 2 4;
 }
 
 .ring-bar {
   fill: none;
-  stroke: var(--label);
+  stroke: var(--fg);
   stroke-linecap: round;
   transition: stroke-dashoffset 1s var(--ease), opacity 0.3s;
 }
 
+/* Erinnerungs-Banner: invertiert, damit es sofort auffällt */
+.nudge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--radius-l);
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.nudge-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--bg);
+  border-radius: 12px;
+}
+
+.nudge-icon .icon {
+  transform-origin: 50% 10%;
+  animation: wiggle 1.2s var(--ease) 0.4s 2;
+}
+
+.nudge-title {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.nudge-sub {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Ring-Karte */
 .ring-card {
   display: flex;
   align-items: center;
   gap: 20px;
-  transition: box-shadow 0.8s var(--ease);
+  transition: box-shadow 0.6s var(--ease);
 }
 
+/* Perfekter Tag: doppelt so dicke Umrandung */
 .ring-card.perfect {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16), 0 24px 70px -24px rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 0 1px var(--fg), inset 0 0 0 1px var(--fg);
 }
 
 .ring-wrap {
@@ -550,7 +618,7 @@ body.has-tabbar::after {
 
 .ring-pct {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
@@ -559,10 +627,9 @@ body.has-tabbar::after {
 .tile-value small,
 .arc-big small,
 .stat-pct small {
-  font-size: 0.55em;
-  font-weight: 600;
-  color: var(--label-2);
   margin-left: 1px;
+  font-size: 0.55em;
+  font-weight: 500;
   letter-spacing: 0;
 }
 
@@ -572,27 +639,45 @@ body.has-tabbar::after {
 }
 
 .ring-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+}
+
+.bonus-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
 .ring-sub {
   margin-top: 2px;
   font-size: 15px;
   line-height: 1.3;
-  color: var(--label-2);
 }
 
 .arc-progress {
   margin-top: 14px;
 }
 
+/* Balken: weiße Umrandung, weiße Füllung – kein grauer Hintergrund */
 .bar {
-  height: 6px;
+  height: 10px;
+  padding: 1.5px;
+  border: var(--line) solid var(--fg);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
 }
 
@@ -600,7 +685,7 @@ body.has-tabbar::after {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--label);
+  background: var(--fg);
   transform-origin: left center;
 }
 
@@ -609,7 +694,8 @@ body.has-tabbar::after {
 }
 
 .bar-lg {
-  height: 8px;
+  height: 14px;
+  padding: 2px;
 }
 
 .arc-meta {
@@ -618,39 +704,36 @@ body.has-tabbar::after {
   gap: 8px;
   margin-top: 7px;
   font-size: 12px;
-  font-weight: 500;
-  color: var(--label-2);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-/* Zitat */
+/* Zitat: großes Anführungszeichen nur als Umriss */
 .quote-card {
   position: relative;
   overflow: hidden;
   padding: 20px 20px 18px;
-  border-radius: var(--radius-l);
-  background: linear-gradient(155deg, #1f1f22 0%, #0d0d0f 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 
 .quote-mark {
   position: absolute;
-  top: -22px;
-  right: 12px;
+  top: -20px;
+  right: 14px;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 132px;
+  font-size: 128px;
   font-weight: 700;
   line-height: 1;
-  color: rgba(255, 255, 255, 0.07);
+  color: transparent;
+  -webkit-text-stroke: 1px var(--fg);
   pointer-events: none;
 }
 
 .quote-text {
   position: relative;
   margin: 0;
-  padding-right: 24px;
+  padding-right: 66px;
   font-size: 19px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.015em;
   line-height: 1.3;
 }
@@ -659,10 +742,9 @@ body.has-tabbar::after {
   display: block;
   margin-top: 12px;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--label-3);
 }
 
 /* Habit-Zeilen */
@@ -676,24 +758,30 @@ body.has-tabbar::after {
   min-height: 66px;
   padding: 12px 16px;
   text-align: left;
-  transition: background 0.2s;
 }
 
-.habit-row:active:not(.is-static),
-.manage-row:is(button):active,
-.suggest-main:active {
-  background: var(--surface-2);
+.habit-row > *,
+.manage-row > *,
+.suggest-main > * {
+  transition: transform 0.2s var(--ease);
 }
 
+.habit-row:not(.is-static):active > *,
+.manage-row:is(button):active > *,
+.suggest-main:active > * {
+  transform: scale(0.95);
+}
+
+/* Offen = Umriss, erledigt = gefüllt ("Licht an") */
 .habit-icon {
   width: 38px;
   height: 38px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
+  border: var(--line) solid var(--fg);
   border-radius: 11px;
-  background: var(--surface-2);
-  transition: background 0.35s var(--ease);
+  transition: background 0.35s var(--ease), color 0.35s;
 }
 
 .habit-icon .icon {
@@ -702,7 +790,8 @@ body.has-tabbar::after {
 }
 
 .habit-row.done .habit-icon {
-  background: var(--surface-3);
+  background: var(--fg);
+  color: var(--bg);
 }
 
 .habit-text {
@@ -714,26 +803,25 @@ body.has-tabbar::after {
 }
 
 .habit-name {
-  font-size: 17px;
-  font-weight: 500;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 600;
 }
 
 .habit-meta {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
-  color: var(--label-2);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
   overflow: hidden;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
 }
 
 .habit-meta .sep {
-  color: var(--label-3);
   margin: 0 2px;
 }
 
@@ -744,15 +832,14 @@ body.has-tabbar::after {
   flex-shrink: 0;
   display: grid;
   place-items: center;
+  border: 1.5px solid var(--fg);
   border-radius: 50%;
-  box-shadow: inset 0 0 0 2px var(--label-4);
   color: transparent;
-  transition: background 0.35s var(--ease), box-shadow 0.35s, color 0.25s;
+  transition: background 0.35s var(--ease), color 0.25s;
 }
 
 .habit-row.done .check {
-  background: var(--label);
-  box-shadow: inset 0 0 0 2px var(--label);
+  background: var(--fg);
   color: var(--bg);
 }
 
@@ -772,7 +859,7 @@ body.has-tabbar::after {
 }
 
 .note-card:focus-within {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 1px var(--fg);
 }
 
 .note-input {
@@ -786,11 +873,6 @@ body.has-tabbar::after {
   background: transparent;
   font-size: 17px;
   line-height: 1.45;
-  color: var(--label);
-}
-
-.note-input::placeholder {
-  color: var(--label-3);
 }
 
 .note-foot {
@@ -798,13 +880,13 @@ body.has-tabbar::after {
   justify-content: space-between;
   margin-top: 8px;
   font-size: 12px;
-  color: var(--label-3);
+  font-weight: 600;
 }
 
 /* Countdown (Arc startet noch) */
 .countdown {
-  text-align: center;
   padding: 30px 22px;
+  text-align: center;
 }
 
 .countdown-num {
@@ -818,17 +900,15 @@ body.has-tabbar::after {
 .countdown-label {
   margin-top: 8px;
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--label-2);
 }
 
 .countdown-text {
-  margin: 14px auto 0;
   max-width: 320px;
+  margin: 14px auto 0;
   font-size: 15px;
-  color: var(--label-2);
 }
 
 /* Arc beendet */
@@ -845,12 +925,11 @@ body.has-tabbar::after {
 
 .finished-title {
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .finished-sub {
   font-size: 14px;
-  color: var(--label-2);
 }
 
 /* Vorschläge */
@@ -873,7 +952,7 @@ body.has-tabbar::after {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--label);
+  background: var(--fg);
   color: var(--bg);
   transition: transform 0.3s var(--spring);
 }
@@ -889,13 +968,13 @@ body.has-tabbar::after {
 
 .arc-top {
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
+  justify-content: space-between;
 }
 
 .arc-dates {
   font-size: 13px;
-  color: var(--label-2);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -920,8 +999,8 @@ body.has-tabbar::after {
   gap: 12px;
   min-height: 124px;
   padding: 16px;
+  border: var(--line) solid var(--fg);
   border-radius: var(--radius-l);
-  background: var(--surface);
 }
 
 .tile-icon {
@@ -930,14 +1009,14 @@ body.has-tabbar::after {
   flex-shrink: 0;
   display: grid;
   place-items: center;
+  border: var(--line) solid var(--fg);
   border-radius: 10px;
-  background: var(--surface-2);
 }
 
 .tile-value {
   margin-top: auto;
   font-size: 34px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -950,11 +1029,10 @@ body.has-tabbar::after {
 .tile-label {
   margin-top: -6px;
   font-size: 13px;
-  font-weight: 500;
-  color: var(--label-2);
+  font-weight: 600;
 }
 
-/* Heatmap */
+/* Heatmap: Umriss = Tag, Füllung von unten = wie viel geschafft */
 .heat-card {
   padding: 16px 16px 14px;
 }
@@ -962,28 +1040,32 @@ body.has-tabbar::after {
 .heat {
   display: grid;
   grid-template-columns: 30px repeat(7, minmax(0, 1fr));
-  gap: 5px;
+  gap: 6px;
 }
 
 .heat-dow {
   padding-bottom: 2px;
   text-align: center;
   font-size: 11px;
-  font-weight: 600;
-  color: var(--label-3);
+  font-weight: 700;
 }
 
 .heat-month {
   align-self: center;
   font-size: 11px;
-  font-weight: 600;
-  color: var(--label-2);
+  font-weight: 800;
+}
+
+.cell,
+.heat-legend i {
+  position: relative;
+  border: var(--line) solid var(--fg);
+  background: linear-gradient(to top, var(--fg) var(--fill, 0%), transparent var(--fill, 0%));
 }
 
 .cell {
   aspect-ratio: 1;
   border-radius: 28%;
-  background: var(--surface-2);
   transition: transform 0.25s var(--ease);
 }
 
@@ -1000,33 +1082,45 @@ button.cell:active {
   visibility: hidden;
 }
 
-.cell.future {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+/* Kommt noch: gestrichelt */
+.cell.future,
+.heat-legend i.future {
+  border-style: dashed;
+  background: none;
 }
 
-.cell.none {
-  background: rgba(255, 255, 255, 0.04);
+/* Pausentag: kleiner Punkt in der Mitte */
+.cell.rest::after,
+.heat-legend i.rest::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 4px;
+  height: 4px;
+  margin: auto;
+  border-radius: 50%;
+  background: var(--fg);
 }
-
-.l0 { background: var(--surface-2); }
-.l1 { background: rgba(255, 255, 255, 0.24); }
-.l2 { background: rgba(255, 255, 255, 0.46); }
-.l3 { background: rgba(255, 255, 255, 0.7); }
-.l4 { background: #fff; }
 
 .cell.today {
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--label);
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
 }
 
 .heat-legend {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 4px;
-  margin-top: 14px;
+  gap: 8px 16px;
+  margin-top: 16px;
   font-size: 11px;
-  color: var(--label-3);
+  font-weight: 600;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .heat-legend i {
@@ -1035,12 +1129,8 @@ button.cell:active {
   border-radius: 3.5px;
 }
 
-.heat-legend span:first-child {
+.legend-item i:last-of-type {
   margin-right: 2px;
-}
-
-.heat-legend span:last-child {
-  margin-left: 2px;
 }
 
 /* Statistik pro Habit */
@@ -1056,7 +1146,7 @@ button.cell:active {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
 }
 
 .stat-top {
@@ -1068,15 +1158,11 @@ button.cell:active {
 
 .stat-pct {
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
 /* ---------- 7. Habits & Einstellungen ---------- */
-.chev {
-  color: var(--label-3);
-}
-
 .reorder {
   display: flex;
   gap: 6px;
@@ -1087,9 +1173,9 @@ button.cell:active {
   height: 34px;
   display: grid;
   place-items: center;
+  border: var(--line) solid var(--fg);
   border-radius: 50%;
-  background: var(--surface-2);
-  transition: transform 0.25s var(--spring), opacity 0.2s;
+  transition: transform 0.25s var(--spring);
 }
 
 .reorder button:active {
@@ -1097,19 +1183,20 @@ button.cell:active {
 }
 
 .reorder button:disabled {
-  opacity: 0.25;
+  visibility: hidden;
 }
 
-/* Datum & Stepper */
+/* Datum, Uhrzeit & Stepper */
 .date-input {
-  margin-left: auto;
   min-height: 36px;
+  margin-left: auto;
   padding: 6px 12px;
-  border: 0;
+  border: var(--line) solid var(--fg);
   border-radius: 10px;
-  background: var(--surface-2);
-  color: var(--label);
+  background: var(--bg);
+  color: var(--fg);
   font-size: 17px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color-scheme: dark;
   -webkit-appearance: none;
@@ -1117,15 +1204,14 @@ button.cell:active {
 }
 
 .date-input::-webkit-calendar-picker-indicator {
-  opacity: 0.6;
   cursor: pointer;
 }
 
 .stepper {
-  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-left: auto;
 }
 
 .stepper button {
@@ -1133,16 +1219,19 @@ button.cell:active {
   height: 34px;
   display: grid;
   place-items: center;
+  border: var(--line) solid var(--fg);
   border-radius: 50%;
-  background: var(--surface-2);
-  transition: transform 0.25s var(--spring);
+  transition: transform 0.25s var(--spring), background 0.15s, color 0.15s;
 }
 
 .stepper button:active {
   transform: scale(0.85);
+  background: var(--fg);
+  color: var(--bg);
 }
 
-.stepper input {
+.stepper input,
+.stepper-value {
   width: 44px;
   padding: 0;
   border: 0;
@@ -1150,10 +1239,15 @@ button.cell:active {
   background: transparent;
   text-align: right;
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+.stepper-value {
+  width: auto;
+  min-width: 14px;
 }
 
 .stepper input::-webkit-inner-spin-button,
@@ -1165,7 +1259,6 @@ button.cell:active {
 .stepper-unit {
   margin-right: 4px;
   font-size: 15px;
-  color: var(--label-2);
 }
 
 .chips {
@@ -1178,11 +1271,10 @@ button.cell:active {
 .chip {
   height: 34px;
   padding: 0 15px;
+  border: var(--line) solid var(--fg);
   border-radius: 999px;
-  background: var(--surface);
   font-size: 14px;
   font-weight: 600;
-  color: var(--label-2);
   transition: background 0.3s var(--ease), color 0.3s, transform 0.25s var(--ease);
 }
 
@@ -1191,8 +1283,41 @@ button.cell:active {
 }
 
 .chip.active {
-  background: var(--label);
+  background: var(--fg);
   color: var(--bg);
+}
+
+/* iOS-Schalter in Schwarz-Weiß: aus = Umriss, an = weiß gefüllt */
+.switch {
+  position: relative;
+  width: 51px;
+  height: 31px;
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 1.5px solid var(--fg);
+  border-radius: 999px;
+  transition: background 0.3s var(--ease);
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--fg);
+  transition: transform 0.4s var(--spring), background 0.3s;
+}
+
+.switch[aria-checked="true"] {
+  background: var(--fg);
+}
+
+.switch[aria-checked="true"]::after {
+  transform: translateX(20px);
+  background: var(--bg);
 }
 
 /* Installations-Anleitung */
@@ -1200,7 +1325,6 @@ button.cell:active {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 18px;
 }
 
 .install-step {
@@ -1209,7 +1333,6 @@ button.cell:active {
   gap: 12px;
   font-size: 15px;
   line-height: 1.4;
-  color: var(--label-2);
 }
 
 .install-num {
@@ -1219,18 +1342,18 @@ button.cell:active {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--label);
+  background: var(--fg);
   color: var(--bg);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .app > .app-footer {
   margin: 36px 0 0;
   text-align: center;
   font-size: 12px;
+  font-weight: 600;
   line-height: 1.5;
-  color: var(--label-3);
 }
 
 /* ---------- 8. Onboarding ---------- */
@@ -1256,9 +1379,9 @@ button.cell:active {
   margin: 36px auto 26px;
   display: grid;
   place-items: center;
+  border: var(--line) solid var(--fg);
   border-radius: 28px;
-  background: linear-gradient(155deg, #2a2a2d 0%, #0b0b0c 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 24px 70px -18px rgba(255, 255, 255, 0.22);
+  background: var(--bg);
 }
 
 .ob-logo .icon {
@@ -1268,24 +1391,23 @@ button.cell:active {
 .ob-title {
   margin: 0;
   text-align: center;
-  font-size: 38px;
+  font-size: 40px;
   font-weight: 800;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
   line-height: 1.1;
 }
 
 .ob-sub {
-  margin: 10px auto 34px;
   max-width: 320px;
+  margin: 10px auto 34px;
   text-align: center;
   font-size: 17px;
-  color: var(--label-2);
 }
 
 .ob-left {
-  text-align: left;
   margin-left: 4px;
   margin-right: 4px;
+  text-align: left;
 }
 
 .ob-title.ob-left {
@@ -1321,14 +1443,13 @@ button.cell:active {
 .feature h3 {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .feature p {
   margin: 2px 0 0;
   font-size: 15px;
   line-height: 1.35;
-  color: var(--label-2);
 }
 
 .ob-actions {
@@ -1344,15 +1465,10 @@ button.cell:active {
   margin-left: -6px;
   padding: 8px 6px;
   font-size: 17px;
-  color: var(--label-2);
-  transition: opacity 0.2s;
+  font-weight: 600;
 }
 
-.back-btn:active {
-  opacity: 0.45;
-}
-
-/* ---------- 9. Tab-Bar (schwebende Glas-Kapsel) ---------- */
+/* ---------- 9. Tab-Bar (schwebende Kapsel) ---------- */
 .tabbar {
   position: fixed;
   left: 0;
@@ -1378,18 +1494,16 @@ button.cell:active {
   max-width: 420px;
   height: 64px;
   padding: 5px;
+  border: var(--line) solid var(--fg);
   border-radius: 999px;
-  background: rgba(28, 28, 30, 0.66);
+  background: rgba(0, 0, 0, 0.8);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
-  box-shadow:
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 14px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.8);
   pointer-events: auto;
 }
 
-/* Der helle "Pill", der zum aktiven Tab gleitet */
+/* Der weiße "Pill", der zum aktiven Tab gleitet */
 .tab-thumb {
   position: absolute;
   top: 5px;
@@ -1397,7 +1511,7 @@ button.cell:active {
   left: 5px;
   width: calc((100% - 10px) / 4);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.13);
+  background: var(--fg);
   transform: translateX(calc(var(--i) * 100%));
   transition: transform 0.55s var(--spring);
 }
@@ -1411,9 +1525,8 @@ button.cell:active {
   justify-content: center;
   gap: 3px;
   border-radius: 999px;
-  color: var(--label-2);
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.01em;
   transition: color 0.3s;
 }
@@ -1427,7 +1540,7 @@ button.cell:active {
 }
 
 .tab[aria-current="page"] {
-  color: var(--label);
+  color: var(--bg);
 }
 
 /* ---------- 10. Sheet, Dialog, Toast ---------- */
@@ -1440,7 +1553,9 @@ button.cell:active {
 .sheet-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.62);
+  background: rgba(0, 0, 0, 0.78);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   opacity: 0;
   transition: opacity 0.45s var(--ease);
 }
@@ -1456,9 +1571,10 @@ button.cell:active {
   max-height: calc(100dvh - var(--safe-top) - 16px);
   margin: 0 auto;
   padding-bottom: var(--safe-bottom);
+  border: var(--line) solid var(--fg);
+  border-bottom: 0;
   border-radius: 30px 30px 0 0;
-  background: var(--surface);
-  box-shadow: 0 -10px 60px rgba(0, 0, 0, 0.6), inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
+  background: var(--bg);
   transform: translateY(100%);
   transition: transform 0.5s var(--ease);
 }
@@ -1487,7 +1603,7 @@ button.cell:active {
   height: 5px;
   margin: 0 auto 4px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.24);
+  background: var(--fg);
 }
 
 .sheet-bar {
@@ -1499,31 +1615,31 @@ button.cell:active {
 
 .sheet-title {
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
   text-align: center;
+  font-size: 17px;
+  font-weight: 800;
 }
 
 .sheet-btn {
   justify-self: start;
   padding: 10px;
   font-size: 17px;
-  color: var(--label-2);
-  transition: opacity 0.2s;
+  transition: transform 0.2s var(--ease);
 }
 
-.sheet-btn:active {
-  opacity: 0.45;
+.sheet-btn:active:not(:disabled) {
+  transform: scale(0.92);
 }
 
 .sheet-btn-primary {
   justify-self: end;
-  font-weight: 600;
-  color: var(--label);
+  font-weight: 800;
 }
 
+/* Deaktiviert: durchgestrichen statt grau */
 .sheet-btn:disabled {
-  opacity: 0.3;
+  font-weight: 400;
+  text-decoration: line-through;
 }
 
 .sheet-body {
@@ -1533,12 +1649,8 @@ button.cell:active {
   padding: 4px 16px 28px;
 }
 
-.sheet .list {
-  background: var(--surface-2);
-}
-
 .sheet-section {
-  margin-top: 24px;
+  margin-top: 26px;
 }
 
 .sheet .footnote {
@@ -1550,7 +1662,7 @@ button.cell:active {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 10px 0 2px;
 }
 
@@ -1560,9 +1672,8 @@ button.cell:active {
   display: grid;
   place-items: center;
   border-radius: 24px;
-  background: var(--label);
+  background: var(--fg);
   color: var(--bg);
-  box-shadow: 0 18px 50px -14px rgba(255, 255, 255, 0.35);
 }
 
 .preview-icon.bump {
@@ -1570,19 +1681,27 @@ button.cell:active {
 }
 
 .preview-name {
-  min-height: 28px;
   max-width: 100%;
+  min-height: 28px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .preview-name.placeholder {
-  color: var(--label-3);
+  opacity: 0.45;
+}
+
+.preview-rhythm {
+  margin-top: -4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* Vorschlags-Chips (horizontal scrollbar) */
@@ -1606,26 +1725,27 @@ button.cell:active {
   gap: 8px;
   height: 40px;
   padding: 0 15px 0 12px;
+  border: var(--line) solid var(--fg);
   border-radius: 999px;
-  background: var(--surface-2);
-  font-size: 15px;
-  font-weight: 500;
   white-space: nowrap;
-  transition: background 0.3s var(--ease), color 0.3s, transform 0.25s var(--ease), opacity 0.3s;
+  font-size: 15px;
+  font-weight: 600;
+  transition: background 0.3s var(--ease), color 0.3s, transform 0.25s var(--ease);
 }
 
 .suggestion:active {
   transform: scale(0.94);
 }
 
+/* Schon hinzugefügt: gestrichelt */
 .suggestion.added {
-  opacity: 0.38;
+  border-style: dashed;
+  font-weight: 400;
 }
 
 .suggestion.selected {
-  background: var(--label);
+  background: var(--fg);
   color: var(--bg);
-  opacity: 1;
 }
 
 .text-input {
@@ -1639,10 +1759,6 @@ button.cell:active {
   font-size: 17px;
 }
 
-.text-input::placeholder {
-  color: var(--label-3);
-}
-
 /* Icon-Auswahl */
 .icon-grid {
   display: grid;
@@ -1654,9 +1770,8 @@ button.cell:active {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
+  border: var(--line) solid var(--fg);
   border-radius: 16px;
-  background: var(--surface-2);
-  color: var(--label-2);
   transition: background 0.3s var(--ease), color 0.3s, transform 0.3s var(--spring);
 }
 
@@ -1665,20 +1780,20 @@ button.cell:active {
 }
 
 .icon-opt.selected {
-  background: var(--label);
+  background: var(--fg);
   color: var(--bg);
   transform: scale(1.04);
 }
 
-/* Segmented Control (iOS-Umschalter) */
+/* Segmented Control (iOS-Umschalter, beliebig viele Optionen) */
 .segmented {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  height: 38px;
+  grid-template-columns: repeat(var(--n, 2), 1fr);
+  height: 40px;
   padding: 3px;
-  border-radius: 12px;
-  background: var(--surface-2);
+  border: var(--line) solid var(--fg);
+  border-radius: 13px;
 }
 
 .seg-thumb {
@@ -1686,27 +1801,60 @@ button.cell:active {
   top: 3px;
   bottom: 3px;
   left: 3px;
-  width: calc(50% - 3px);
+  width: calc((100% - 6px) / var(--n, 2));
   border-radius: 9px;
-  background: #636366;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  background: var(--fg);
+  transform: translateX(calc(var(--index, 0) * 100%));
   transition: transform 0.4s var(--ease);
-}
-
-.segmented[data-index="1"] .seg-thumb {
-  transform: translateX(100%);
 }
 
 .seg-btn {
   position: relative;
   z-index: 1;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  transition: color 0.3s;
+}
+
+.seg-btn[aria-pressed="true"] {
+  color: var(--bg);
+}
+
+.rhythm-detail {
+  margin-top: 12px;
+}
+
+.rhythm-detail[hidden] {
+  display: none;
+}
+
+/* Wochentage-Auswahl */
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.wd {
+  aspect-ratio: 1;
+  border: var(--line) solid var(--fg);
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background 0.25s var(--ease), color 0.25s, transform 0.3s var(--spring);
+}
+
+.wd:active {
+  transform: scale(0.88);
+}
+
+.wd[aria-pressed="true"] {
+  background: var(--fg);
+  color: var(--bg);
 }
 
 .btn-danger {
-  margin-top: 28px;
-  background: var(--surface-2);
+  margin-top: 30px;
 }
 
 /* Bestätigungs-Dialog */
@@ -1717,7 +1865,7 @@ button.cell:active {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.78);
   opacity: 0;
   transition: opacity 0.25s;
 }
@@ -1730,10 +1878,9 @@ button.cell:active {
   width: 100%;
   max-width: 290px;
   overflow: hidden;
+  border: var(--line) solid var(--fg);
   border-radius: 24px;
-  background: rgba(44, 44, 46, 0.86);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  backdrop-filter: blur(30px) saturate(180%);
+  background: var(--bg);
   text-align: center;
   transform: scale(1.1);
   transition: transform 0.35s var(--ease);
@@ -1750,35 +1897,35 @@ button.cell:active {
 .alert-title {
   margin: 0 0 4px;
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .alert-msg {
   margin: 0;
   font-size: 13px;
   line-height: 1.4;
-  color: var(--label-2);
 }
 
 .alert-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border-top: 0.5px solid var(--separator);
+  border-top: var(--line) solid var(--fg);
 }
 
 .alert-actions button {
   height: 48px;
   font-size: 17px;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .alert-actions button + button {
-  border-left: 0.5px solid var(--separator);
-  font-weight: 600;
+  border-left: var(--line) solid var(--fg);
+  font-weight: 800;
 }
 
 .alert-actions button:active {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--fg);
+  color: var(--bg);
 }
 
 /* Toast (oben, wie die Dynamic Island) */
@@ -1792,14 +1939,12 @@ button.cell:active {
   gap: 8px;
   max-width: calc(100% - 32px);
   padding: 11px 18px 11px 14px;
+  border: var(--line) solid var(--fg);
   border-radius: 999px;
-  background: rgba(30, 30, 32, 0.9);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 12px 36px rgba(0, 0, 0, 0.5);
-  font-size: 15px;
-  font-weight: 600;
+  background: var(--bg);
   white-space: nowrap;
+  font-size: 15px;
+  font-weight: 700;
   transform: translate(-50%, calc(-100% - var(--safe-top) - 24px));
   transition: transform 0.55s var(--spring);
   pointer-events: none;
@@ -1846,10 +1991,11 @@ button.cell:active {
   animation-iteration-count: infinite;
 }
 
+/* Flocken sind reinweiß, sie blitzen nur am Anfang und Ende kurz auf bzw. aus */
 @keyframes snowfall {
   0% { transform: translate(0, 0); opacity: 0; }
-  10% { opacity: var(--o, 0.8); }
-  85% { opacity: var(--o, 0.8); }
+  6% { opacity: 1; }
+  90% { opacity: 1; }
   100% { transform: translate(var(--dx, 0), 105vh); opacity: 0; }
 }
 
@@ -1880,26 +2026,34 @@ button.cell:active {
   to { transform: rotate(360deg); }
 }
 
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-12deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-4deg); }
+}
+
 /* Desktop: Sheet schwebt etwas über dem Rand */
 @media (min-width: 700px) {
   .sheet {
     bottom: 24px;
+    border-bottom: var(--line) solid var(--fg);
     border-radius: 30px;
     transform: translateY(calc(100% + 40px));
   }
 }
 
-/* Mit Maus: leichter Hover-Effekt */
+/* Mit Maus: Hover = leichtes Anheben */
 @media (hover: hover) {
-  .habit-row:not(.is-static):hover,
-  .manage-row:is(button):hover,
-  .suggest-main:hover,
-  .row-btn:hover {
-    background: rgba(255, 255, 255, 0.03);
+  .day:not(:disabled):not(.selected):hover {
+    box-shadow: inset 0 0 0 1px var(--fg);
   }
 
-  .day:not(:disabled):not(.selected):hover {
-    background: rgba(255, 255, 255, 0.05);
+  .chip:hover,
+  .icon-opt:hover,
+  .suggestion:hover {
+    transform: translateY(-1px);
   }
 }
 
@@ -1910,6 +2064,7 @@ button.cell:active {
   .ring-pct { font-size: 24px; }
   .ring-card { gap: 16px; }
   .tab { font-size: 9.5px; }
+  .seg-btn { font-size: 12.5px; }
 }
 
 /* Barrierefreiheit: Wer Bewegung reduzieren will, bekommt (fast) keine Animationen */

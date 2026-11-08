@@ -22,8 +22,10 @@ export function header(eyebrow, title, right = '') {
 
 /* ---------- Fortschrittsring (wie bei Apple Fitness) ----------
    Trick: Ein Kreis mit gestrichelter Linie. stroke-dasharray = Umfang,
-   stroke-dashoffset verschiebt den Strich → so wird nur ein Teil sichtbar. */
-export function ring({ ratio, size = 120, stroke = 12, from = null }) {
+   stroke-dashoffset verschiebt den Strich → so wird nur ein Teil sichtbar.
+   Die Spur darunter ist nur eine dünne weiße Linie (kein Grau!).
+   dashed = gestrichelte Spur für Tage, die noch kommen. */
+export function ring({ ratio, size = 120, stroke = 12, track = 1.5, from = null, dashed = false }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const to = c * (1 - clamp(ratio, 0, 1));
@@ -32,7 +34,7 @@ export function ring({ ratio, size = 120, stroke = 12, from = null }) {
   const mid = size / 2;
   return `
     <svg class="ring" viewBox="0 0 ${size} ${size}" aria-hidden="true">
-      <circle class="ring-track" cx="${mid}" cy="${mid}" r="${r}" stroke-width="${stroke}"/>
+      <circle class="ring-track${dashed ? ' dashed' : ''}" cx="${mid}" cy="${mid}" r="${r}" stroke-width="${track}"/>
       <circle class="ring-bar" cx="${mid}" cy="${mid}" r="${r}" stroke-width="${stroke}"
         stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${start.toFixed(2)}"
         data-to="${to.toFixed(2)}" style="opacity:${hidden ? 0 : 1}"/>
@@ -52,6 +54,25 @@ export function animateRings(root) {
       });
     }),
   );
+}
+
+/* ---------- Segmented Control (iOS-Umschalter) ----------
+   options: [{ value, label }], der weiße "Thumb" gleitet zur Auswahl. */
+export function segmented(name, options, selected) {
+  const index = Math.max(0, options.findIndex((o) => o.value === selected));
+  return `
+    <div class="segmented" data-seg="${name}" style="--n:${options.length};--index:${index}">
+      <span class="seg-thumb" aria-hidden="true"></span>
+      ${options.map((o, i) => `<button type="button" class="seg-btn" data-seg-value="${o.value}" aria-pressed="${i === index}">${o.label}</button>`).join('')}
+    </div>`;
+}
+
+/** Auswahl im Segmented Control setzen (Thumb verschieben, Text umfärben). */
+export function selectSegment(segEl, value) {
+  const buttons = [...segEl.querySelectorAll('[data-seg-value]')];
+  const index = Math.max(0, buttons.findIndex((b) => b.dataset.segValue === value));
+  segEl.style.setProperty('--index', index);
+  buttons.forEach((b, i) => b.setAttribute('aria-pressed', String(i === index)));
 }
 
 /* ---------- Arc-Zeitraum: Start, Dauer, Ende ---------- */

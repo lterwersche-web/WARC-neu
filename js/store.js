@@ -8,11 +8,17 @@
    So sieht der state aus:
    {
      onboarded: true,
-     arc:    { start: "2026-11-04", days: 90 },
-     habits: [{ id, name, icon, since }],
-     logs:   { "2026-11-04": ["habitId1", "habitId2"] },  ← erledigte Habits pro Tag
-     notes:  { "2026-11-04": "Heute 5 km gelaufen" }
+     arc:      { start: "2026-11-04", days: 90 },
+     habits:   [{ id, name, icon, since, schedule }],
+     logs:     { "2026-11-04": ["habitId1", "habitId2"] },  ← erledigte Habits pro Tag
+     notes:    { "2026-11-04": "Heute 5 km gelaufen" },
+     reminder: { enabled: true, time: "20:00" }
    }
+
+   schedule (Rhythmus eines Habits) gibt's in drei Varianten:
+     { type: "daily" }                    → jeden Tag
+     { type: "days", days: [0, 2, 4] }    → feste Tage (0 = Mo … 6 = So)
+     { type: "weekly", times: 3 }         → flexibel, 3× pro Woche
 
    Wichtig: Andere Dateien ändern den state NIE direkt, sondern
    rufen die Funktionen unten auf (addHabit, toggleHabit …).
@@ -39,13 +45,35 @@ export function clampDays(n) {
 
 function createDefaults() {
   return {
-    version: 1,
+    version: 2,
     onboarded: false,
     arc: { start: todayKey(), days: 90 },
     habits: [],
     logs: {},
     notes: {},
+    reminder: { enabled: false, time: '20:00' },
   };
+}
+
+/** Rhythmus prüfen. Alles Unbekannte wird zu "täglich" (so werden auch alte Daten migriert). */
+export function sanitizeSchedule(raw) {
+  if (raw?.type === 'days' && Array.isArray(raw.days)) {
+    const days = [...new Set(raw.days.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort((a, b) => a - b);
+    if (days.length === 7) return { type: 'daily' };
+    if (days.length) return { type: 'days', days };
+  }
+  if (raw?.type === 'weekly') {
+    const times = Math.round(Number(raw.times));
+    if (Number.isFinite(times)) return { type: 'weekly', times: Math.min(6, Math.max(1, times)) };
+  }
+  return { type: 'daily' };
+}
+
+/** Uhrzeit im Format "HH:MM" prüfen. */
+function isValidTime(value) {
+  if (typeof value !== 'string' || !/^\d{2}:\d{2}$/.test(value)) return false;
+  const [h, m] = value.split(':').map(Number);
+  return h < 24 && m < 60;
 }
 
 /**
@@ -75,6 +103,7 @@ function sanitize(raw) {
         name: h.name.trim().slice(0, MAX_NAME),
         icon: HABIT_ICONS.includes(h.icon) ? h.icon : 'star',
         since: isValidKey(h.since) ? h.since : s.arc.start,
+        schedule: sanitizeSchedule(h.schedule),
       });
     }
   }
@@ -92,6 +121,11 @@ function sanitize(raw) {
     for (const [key, text] of Object.entries(raw.notes)) {
       if (isValidKey(key) && typeof text === 'string' && text.trim()) s.notes[key] = text.slice(0, MAX_NOTE);
     }
+  }
+
+  if (raw.reminder && typeof raw.reminder === 'object') {
+    s.reminder.enabled = Boolean(raw.reminder.enabled);
+    if (isValidTime(raw.reminder.time)) s.reminder.time = raw.reminder.time;
   }
 
   return s;
@@ -169,19 +203,20 @@ export function updateArc({ start, days }) {
 
 /* ---------- Aktionen: Habits ---------- */
 
-export function addHabit({ name, icon, since }) {
-  const habit = { id: uid(), name: name.trim().slice(0, MAX_NAME), icon, since };
+export function addHabit({ name, icon, since, schedule }) {
+  const habit = { id: uid(), name: name.trim().slice(0, MAX_NAME), icon, since, schedule: sanitizeSchedule(schedule) };
   state.habits.push(habit);
   commit();
   return habit;
 }
 
-export function updateHabit(id, { name, icon, since }) {
+export function updateHabit(id, { name, icon, since, schedule }) {
   const habit = state.habits.find((h) => h.id === id);
   if (!habit) return;
   if (name) habit.name = name.trim().slice(0, MAX_NAME);
   if (icon) habit.icon = icon;
   if (since) habit.since = since;
+  if (schedule) habit.schedule = sanitizeSchedule(schedule);
   commit();
 }
 
@@ -222,6 +257,14 @@ export function setNote(dateKey, text) {
   if (text.trim()) state.notes[dateKey] = text.slice(0, MAX_NOTE);
   else delete state.notes[dateKey];
   saveLater();
+}
+
+/* ---------- Erinnerung ---------- */
+
+export function setReminder({ enabled, time }) {
+  if (enabled != null) state.reminder.enabled = Boolean(enabled);
+  if (isValidTime(time)) state.reminder.time = time;
+  commit();
 }
 
 /* ---------- Backup ---------- */

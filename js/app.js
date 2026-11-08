@@ -10,10 +10,11 @@
    ========================================================= */
 import {
   getState, subscribe, flush, toggleHabit, addHabit, moveHabit,
-  startArc, exportData, importData, resetAll, setNote,
+  startArc, exportData, importData, resetAll, setNote, setReminder,
 } from './store.js';
 import { todayKey } from './dates.js';
 import { arcInfo, dayProgress } from './stats.js';
+import { nudgeFor, downloadReminder } from './reminder.js';
 import { icon } from './icons.js';
 import { haptic } from './utils.js';
 import { toast, confirmDialog } from './ui/overlay.js';
@@ -265,6 +266,19 @@ const actions = {
     toast('Backup erstellt', 'download');
   },
 
+  'reminder-toggle'() {
+    const enabled = !getState().reminder.enabled;
+    setReminder({ enabled });
+    haptic(8);
+    if (enabled) toast('Erinnerung an. Lade jetzt den Wecker in deinen Kalender.', 'bell');
+  },
+
+  'reminder-ics'() {
+    const { state, info, today } = getCtx();
+    downloadReminder(state, info, today);
+    toast('Kalender-Wecker erstellt', 'calendar');
+  },
+
   import() {
     const input = appEl.querySelector('[data-import-file]');
     if (!input) return;
@@ -352,22 +366,36 @@ appEl.addEventListener('change', async (e) => {
   }
 });
 
-/* ---------- Neuer Tag? (App bleibt über Mitternacht offen) ---------- */
+/* ---------- Neuer Tag? Erinnerungs-Zeit erreicht? ----------
+   Läuft jede Minute und wenn du die App wieder öffnest. */
 let knownDay = todayKey();
-function checkNewDay() {
-  const now = todayKey();
-  if (now === knownDay) return;
-  knownDay = now;
-  ui.selectedDate = null;
-  ui.centerStrip = true;
-  render();
+let knownNudge = null;
+
+function nudgeKey() {
+  const { state, info, today } = getCtx();
+  const nudge = nudgeFor(state, info, today, today);
+  return nudge ? `${nudge.open}` : '';
 }
+
+function checkClock() {
+  const now = todayKey();
+  if (now !== knownDay) {
+    knownDay = now;
+    ui.selectedDate = null;
+    ui.centerStrip = true;
+    render();
+  } else if (ui.tab === 'today' && nudgeKey() !== knownNudge) {
+    render();
+  }
+  knownNudge = nudgeKey();
+}
+
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flush();
-  else checkNewDay();
+  else checkClock();
 });
 window.addEventListener('pagehide', flush);
-setInterval(checkNewDay, 60_000);
+setInterval(checkClock, 60_000);
 
 /* ---------- Offline-Fähigkeit (Service Worker) ---------- */
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
@@ -382,3 +410,4 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 subscribe(render);
 buildTabbar();
 render();
+knownNudge = nudgeKey();

@@ -6,6 +6,7 @@
 import { icon } from '../icons.js';
 import { esc, plural } from '../utils.js';
 import { formatShort } from '../dates.js';
+import { scheduleLabel } from '../stats.js';
 import { header, suggestionList } from './components.js';
 
 export function renderHabits(el, ctx) {
@@ -19,12 +20,12 @@ export function renderHabits(el, ctx) {
 
   const rows = state.habits
     .map((h, i) => {
-      const since = h.since <= info.start ? 'Zählt ab Arc-Start' : `Zählt ab ${formatShort(h.since)}`;
+      const since = h.since <= info.start ? 'ab Arc-Start' : `ab ${formatShort(h.since)}`;
       const text = `
         <span class="habit-icon">${icon(h.icon)}</span>
         <span class="habit-text">
           <span class="habit-name">${esc(h.name)}</span>
-          <span class="habit-meta">${since}</span>
+          <span class="habit-meta"><span>${scheduleLabel(h.schedule)}</span><span class="sep">·</span><span>${since}</span></span>
         </span>`;
 
       if (ui.editMode) {

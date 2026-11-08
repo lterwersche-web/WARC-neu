@@ -5,8 +5,16 @@ import { icon, HABIT_ICONS, ICON_LABELS } from '../icons.js';
 import { esc, haptic } from '../utils.js';
 import { formatShort } from '../dates.js';
 import { addHabit, updateHabit, deleteHabit } from '../store.js';
+import { scheduleLabel, WEEKDAYS_SHORT, WEEKDAYS_LONG } from '../stats.js';
 import { SUGGESTIONS } from '../suggestions.js';
 import { openSheet, confirmDialog, toast } from '../ui/overlay.js';
+import { segmented, selectSegment } from './components.js';
+
+const RHYTHM_HINTS = {
+  daily: 'Jeden Tag fällig.',
+  days: 'Nur an diesen Tagen fällig. An den anderen hast du Pause, und deine Serie läuft weiter.',
+  weekly: 'Egal an welchem Tag. Zählt als Bonus: Abhaken bringt dir was, auslassen kostet keinen perfekten Tag.',
+};
 
 /**
  * @param ctx      aktueller App-Kontext (state, today, info)
@@ -16,9 +24,13 @@ import { openSheet, confirmDialog, toast } from '../ui/overlay.js';
 export function openHabitSheet(ctx, { habit = null, prefill = null } = {}) {
   const { state, today, info } = ctx;
   const isEdit = Boolean(habit);
+  const current = habit?.schedule ?? { type: 'daily' };
   const draft = {
     name: habit?.name ?? prefill?.name ?? '',
     icon: habit?.icon ?? prefill?.icon ?? 'star',
+    rhythm: current.type,
+    days: current.type === 'days' ? [...current.days] : [0, 2, 4],
+    times: current.type === 'weekly' ? current.times : 3,
   };
 
   // "Zählt ab" nur anzeigen, wenn der Arc schon vor heute gestartet ist
@@ -41,14 +53,42 @@ export function openHabitSheet(ctx, { habit = null, prefill = null } = {}) {
       </div>
     </div>`;
 
+  const rhythmSection = `
+    <div class="sheet-section">
+      <div class="section-label">Rhythmus</div>
+      ${segmented('rhythm', [
+        { value: 'daily', label: 'Täglich' },
+        { value: 'days', label: 'Feste Tage' },
+        { value: 'weekly', label: 'X pro Woche' },
+      ], draft.rhythm)}
+      <div class="rhythm-detail" data-detail="days" ${draft.rhythm === 'days' ? '' : 'hidden'}>
+        <div class="weekdays" role="group" aria-label="Wochentage">
+          ${WEEKDAYS_SHORT.map((d, i) => `<button type="button" class="wd" data-wd="${i}" aria-pressed="${draft.days.includes(i)}" aria-label="${WEEKDAYS_LONG[i]}">${d}</button>`).join('')}
+        </div>
+      </div>
+      <div class="rhythm-detail" data-detail="weekly" ${draft.rhythm === 'weekly' ? '' : 'hidden'}>
+        <div class="list">
+          <div class="row">
+            <span class="row-label">Ziel</span>
+            <div class="stepper">
+              <button type="button" data-times="-1" aria-label="Weniger">${icon('minus', { size: 16, stroke: 2.6 })}</button>
+              <span class="stepper-value" data-times-value>${draft.times}</span>
+              <span class="stepper-unit">× pro Woche</span>
+              <button type="button" data-times="1" aria-label="Mehr">${icon('plus', { size: 16, stroke: 2.6 })}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="footnote" data-rhythm-hint>${RHYTHM_HINTS[draft.rhythm]}</p>
+    </div>`;
+
   const sinceSection = !canChooseSince ? '' : `
     <div class="sheet-section">
       <div class="section-label">Zählt ab</div>
-      <div class="segmented" data-index="${sinceMode === 'start' ? 0 : 1}">
-        <span class="seg-thumb"></span>
-        <button type="button" class="seg-btn" data-since="start">Ab Arc-Start</button>
-        <button type="button" class="seg-btn" data-since="later">${laterLabel}</button>
-      </div>
+      ${segmented('since', [
+        { value: 'start', label: 'Ab Arc-Start' },
+        { value: 'later', label: laterLabel },
+      ], sinceMode)}
       <p class="footnote">Ab wann zählt der Habit für Serien und Statistik? Mit „Ab Arc-Start“ kannst du vergangene Tage nachtragen.</p>
     </div>`;
 
@@ -56,6 +96,7 @@ export function openHabitSheet(ctx, { habit = null, prefill = null } = {}) {
     <div class="preview">
       <div class="preview-icon" data-preview-icon>${icon(draft.icon, { size: 34, stroke: 1.8 })}</div>
       <div class="preview-name ${draft.name ? '' : 'placeholder'}" data-preview-name>${esc(draft.name || 'Neuer Habit')}</div>
+      <div class="preview-rhythm" data-preview-rhythm></div>
     </div>
     ${suggestions}
     <div class="sheet-section">
@@ -69,6 +110,7 @@ export function openHabitSheet(ctx, { habit = null, prefill = null } = {}) {
           <button type="button" class="icon-opt ${n === draft.icon ? 'selected' : ''}" data-icon-opt="${n}" aria-label="${ICON_LABELS[n]}" aria-pressed="${n === draft.icon}">${icon(n)}</button>`).join('')}
       </div>
     </div>
+    ${rhythmSection}
     ${sinceSection}
     ${isEdit ? `<button type="button" class="btn-secondary btn-danger" data-delete>${icon('trash', { size: 18 })}Habit löschen</button>` : ''}`;
 
@@ -83,12 +125,20 @@ export function openHabitSheet(ctx, { habit = null, prefill = null } = {}) {
   const nameInput = el.querySelector('[name="name"]');
   const previewIcon = el.querySelector('[data-preview-icon]');
   const previewName = el.querySelector('[data-preview-name]');
+  const previewRhythm = el.querySelector('[data-preview-rhythm]');
+
+  function currentSchedule() {
+    if (draft.rhythm === 'days') return { type: 'days', days: [...draft.days].sort((a, b) => a - b) };
+    if (draft.rhythm === 'weekly') return { type: 'weekly', times: draft.times };
+    return { type: 'daily' };
+  }
 
   /* ---- Vorschau oben aktualisieren ---- */
   function updatePreview({ bumpIcon = false } = {}) {
     previewName.textContent = draft.name.trim() || 'Neuer Habit';
     previewName.classList.toggle('placeholder', !draft.name.trim());
     previewIcon.innerHTML = icon(draft.icon, { size: 34, stroke: 1.8 });
+    previewRhythm.textContent = draft.rhythm === 'days' && !draft.days.length ? 'Wähl mindestens einen Tag' : scheduleLabel(currentSchedule());
     if (bumpIcon) {
       previewIcon.classList.remove('bump');
       void previewIcon.offsetWidth;
@@ -99,7 +149,8 @@ export function openHabitSheet(ctx, { habit = null, prefill = null } = {}) {
       b.classList.toggle('selected', on);
       b.setAttribute('aria-pressed', String(on));
     });
-    sheet.setRightEnabled(Boolean(draft.name.trim()));
+    const valid = Boolean(draft.name.trim()) && !(draft.rhythm === 'days' && !draft.days.length);
+    sheet.setRightEnabled(valid);
   }
   updatePreview();
 
@@ -118,7 +169,9 @@ export function openHabitSheet(ctx, { habit = null, prefill = null } = {}) {
   el.addEventListener('click', async (e) => {
     const sug = e.target.closest('[data-sug-name]');
     const opt = e.target.closest('[data-icon-opt]');
-    const seg = e.target.closest('[data-since]');
+    const seg = e.target.closest('[data-seg-value]');
+    const wd = e.target.closest('[data-wd]');
+    const times = e.target.closest('[data-times]');
 
     if (sug) {
       draft.name = sug.dataset.sugName;
@@ -132,9 +185,27 @@ export function openHabitSheet(ctx, { habit = null, prefill = null } = {}) {
       haptic(5);
       updatePreview({ bumpIcon: true });
     } else if (seg) {
-      sinceMode = seg.dataset.since;
-      seg.parentElement.dataset.index = sinceMode === 'start' ? '0' : '1';
+      const group = seg.closest('[data-seg]');
+      selectSegment(group, seg.dataset.segValue);
+      if (group.dataset.seg === 'since') sinceMode = seg.dataset.segValue;
+      if (group.dataset.seg === 'rhythm') {
+        draft.rhythm = seg.dataset.segValue;
+        el.querySelectorAll('[data-detail]').forEach((d) => { d.hidden = d.dataset.detail !== draft.rhythm; });
+        el.querySelector('[data-rhythm-hint]').textContent = RHYTHM_HINTS[draft.rhythm];
+        updatePreview();
+      }
       haptic(4);
+    } else if (wd) {
+      const day = Number(wd.dataset.wd);
+      draft.days = draft.days.includes(day) ? draft.days.filter((d) => d !== day) : [...draft.days, day];
+      wd.setAttribute('aria-pressed', String(draft.days.includes(day)));
+      haptic(4);
+      updatePreview();
+    } else if (times) {
+      draft.times = Math.min(6, Math.max(1, draft.times + Number(times.dataset.times)));
+      el.querySelector('[data-times-value]').textContent = draft.times;
+      haptic(4);
+      updatePreview();
     } else if (e.target.closest('[data-delete]')) {
       const ok = await confirmDialog({
         title: 'Habit löschen?',
@@ -153,17 +224,22 @@ export function openHabitSheet(ctx, { habit = null, prefill = null } = {}) {
   function save() {
     const name = draft.name.trim();
     if (!name) return;
+    if (draft.rhythm === 'days' && !draft.days.length) {
+      toast('Wähl mindestens einen Tag', 'calendar');
+      return;
+    }
 
     let since;
     if (!canChooseSince) since = isEdit ? habit.since : (today < info.start ? info.start : today);
     else if (sinceMode === 'start') since = info.start;
     else since = isEdit && habit.since > info.start ? habit.since : today;
 
+    const schedule = currentSchedule();
     if (isEdit) {
-      updateHabit(habit.id, { name, icon: draft.icon, since });
+      updateHabit(habit.id, { name, icon: draft.icon, since, schedule });
       toast('Gespeichert');
     } else {
-      addHabit({ name, icon: draft.icon, since });
+      addHabit({ name, icon: draft.icon, since, schedule });
       toast(`„${name}“ hinzugefügt`, 'plus');
     }
     haptic(10);

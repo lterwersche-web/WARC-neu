@@ -7,17 +7,16 @@ import { prefersReducedMotion } from '../utils.js';
 
 const rand = (min, max) => min + Math.random() * (max - min);
 
+/* Reinweiße Flocken in verschiedenen Größen – Tiefe entsteht nur durch Größe & Tempo */
 function flakeStyle({ duration, delay }) {
-  const size = rand(2.5, 7);
+  const size = rand(2, 6.5);
   return [
     `left:${rand(0, 100).toFixed(2)}%`,
     `width:${size.toFixed(1)}px`,
     `height:${size.toFixed(1)}px`,
     `--dx:${rand(-60, 60).toFixed(0)}px`,
-    `--o:${rand(0.35, 0.95).toFixed(2)}`,
     `animation-duration:${duration.toFixed(2)}s`,
     `animation-delay:${delay.toFixed(2)}s`,
-    size > 5.5 ? 'filter:blur(1px)' : '',
   ].join(';');
 }
 

@@ -3,8 +3,17 @@
 
    Hier wird nur GERECHNET, nichts angezeigt. Die Funktionen
    bekommen den state und geben Zahlen zurück.
+
+   Drei Arten von Habits (habit.schedule.type):
+   - "daily"  → jeden Tag fällig
+   - "days"   → nur an festen Wochentagen fällig, sonst Pause
+   - "weekly" → flexibel X-mal pro Woche. Zählt als BONUS:
+                abhaken = +1, nicht abhaken = kein Minus
    ========================================================= */
-import { addDays, diffDays } from './dates.js';
+import { addDays, diffDays, weekdayIndex } from './dates.js';
+
+export const WEEKDAYS_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+export const WEEKDAYS_LONG = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 
 /** Alle Tage von `from` bis `to` als Liste: ["…-01", "…-02", …] */
 export function rangeKeys(from, to) {
@@ -12,6 +21,13 @@ export function rangeKeys(from, to) {
   for (let k = from; k <= to; k = addDays(k, 1)) keys.push(k);
   return keys;
 }
+
+/** Montag der Woche, in der `key` liegt. */
+export function weekStart(key) {
+  return addDays(key, -weekdayIndex(key));
+}
+
+/* ---------- Arc ---------- */
 
 /**
  * Infos zum Arc: Wann endet er? Läuft er schon? Welcher Tag ist heute?
@@ -38,105 +54,169 @@ export function arcInfo(arc, today) {
   };
 }
 
-/** Welche Habits zählen an diesem Tag? (Ein Habit zählt erst ab seinem "since"-Datum.) */
-export function activeHabits(state, dateKey) {
-  return state.habits.filter((h) => h.since <= dateKey);
+/* ---------- Rhythmus ---------- */
+
+export const isFlexible = (habit) => habit.schedule?.type === 'weekly';
+
+/** Kurzer Text zum Rhythmus: "Täglich", "Mo · Mi · Fr", "3× pro Woche" */
+export function scheduleLabel(schedule) {
+  if (schedule?.type === 'days') return schedule.days.map((d) => WEEKDAYS_SHORT[d]).join(' · ');
+  if (schedule?.type === 'weekly') return `${schedule.times}× pro Woche`;
+  return 'Täglich';
 }
 
-/** Wie viel ist an einem Tag erledigt? */
-export function dayProgress(state, dateKey) {
-  const habits = activeHabits(state, dateKey);
-  const log = state.logs[dateKey] ?? [];
-  const done = habits.filter((h) => log.includes(h.id)).length;
-  const total = habits.length;
-  return {
-    done,
-    total,
-    ratio: total ? done / total : 0,
-    perfect: total > 0 && done === total,
-  };
+/** Taucht der Habit an diesem Tag in der Liste auf? */
+export function isDueOn(habit, dateKey) {
+  if (habit.since > dateKey) return false;
+  if (habit.schedule?.type === 'days') return habit.schedule.days.includes(weekdayIndex(dateKey));
+  return true;
 }
 
-/**
- * Aktuelle Serie: Von hinten zählen, wie viele Tage am Stück geklappt haben.
- * Trick: Wenn HEUTE noch nicht erledigt ist, ist die Serie nicht gerissen –
- * der Tag ist ja noch nicht vorbei. Dann zählen wir ab gestern.
- */
-function currentRun(keys, test, today) {
-  let i = keys.length - 1;
-  if (i >= 0 && keys[i] === today && !test(keys[i])) i--;
+/** Alle Habits, die an diesem Tag dran sind. */
+export function habitsForDay(state, dateKey) {
+  return state.habits.filter((h) => isDueOn(h, dateKey));
+}
+
+/** Habits, die es schon gibt, die aber heute Pause haben (feste Tage). */
+export function restingHabits(state, dateKey) {
+  return state.habits.filter((h) => h.since <= dateKey && !isDueOn(h, dateKey));
+}
+
+export function isDone(state, dateKey, habitId) {
+  return (state.logs[dateKey] ?? []).includes(habitId);
+}
+
+/** Wie oft wurde ein Habit in der Woche von `dateKey` erledigt? (für "2/3 diese Woche") */
+export function weekCount(state, habit, dateKey) {
+  const monday = weekStart(dateKey);
   let count = 0;
-  while (i >= 0 && test(keys[i])) {
-    count++;
-    i--;
+  for (let i = 0; i < 7; i++) {
+    const k = addDays(monday, i);
+    if (k >= habit.since && isDone(state, k, habit.id)) count++;
   }
   return count;
 }
 
-/** Längste Serie überhaupt. */
-function bestRun(keys, test) {
-  let best = 0;
-  let current = 0;
-  for (const k of keys) {
-    current = test(k) ? current + 1 : 0;
-    if (current > best) best = current;
+/* ---------- Tagesfortschritt ---------- */
+
+/**
+ * Wie viel ist an einem Tag erledigt?
+ * - done/total zählen nur PFLICHT-Habits (täglich + feste Tage)
+ * - bonus = erledigte flexible Habits
+ * - active = false heißt: An dem Tag war nichts fällig (Pausentag)
+ */
+export function dayProgress(state, dateKey) {
+  let total = 0;
+  let done = 0;
+  let bonus = 0;
+
+  for (const h of state.habits) {
+    if (!isDueOn(h, dateKey)) continue;
+    const checked = isDone(state, dateKey, h.id);
+    if (isFlexible(h)) {
+      if (checked) bonus++;
+    } else {
+      total++;
+      if (checked) done++;
+    }
   }
-  return best;
-}
-
-/** Statistik für EINEN Habit. */
-export function habitStats(state, habit, info, today) {
-  const empty = { current: 0, best: 0, rate: 0, done: 0, total: 0 };
-  if (!info.lastDay) return empty;
-
-  const first = habit.since > info.start ? habit.since : info.start;
-  if (first > info.lastDay) return empty;
-
-  const keys = rangeKeys(first, info.lastDay);
-  const isDone = (k) => (state.logs[k] ?? []).includes(habit.id);
-  // Heute zählt erst mit, wenn es erledigt ist (sonst würde die Quote morgens sinken)
-  const counted = keys.filter((k) => k !== today || isDone(k));
-  const done = counted.filter(isDone).length;
 
   return {
-    current: currentRun(keys, isDone, today),
-    best: bestRun(keys, isDone),
-    rate: counted.length ? done / counted.length : 0,
     done,
-    total: counted.length,
+    total,
+    bonus,
+    open: total - done,
+    active: total + bonus > 0,
+    ratio: total ? done / total : bonus ? 1 : 0,
+    perfect: total ? done === total : bonus > 0,
   };
 }
 
-/** Gesamt-Statistik über alle Habits. "Perfekter Tag" = alle Habits geschafft. */
+/* ---------- Serien ----------
+   Jede Prüfung gibt true (geschafft), false (verpasst) oder
+   null (zählt nicht: Pausentag oder heute noch offen) zurück.
+   null wird übersprungen und unterbricht die Serie NICHT. */
+function runs(results) {
+  let best = 0;
+  let streak = 0;
+  for (const r of results) {
+    if (r === null) continue;
+    streak = r ? streak + 1 : 0;
+    if (streak > best) best = streak;
+  }
+
+  let current = 0;
+  for (let i = results.length - 1; i >= 0; i--) {
+    if (results[i] === null) continue;
+    if (!results[i]) break;
+    current++;
+  }
+
+  const counted = results.filter((r) => r !== null);
+  const done = counted.filter(Boolean).length;
+  return { current, best, done, total: counted.length, rate: counted.length ? done / counted.length : 0 };
+}
+
+const EMPTY = { current: 0, best: 0, done: 0, total: 0, rate: 0 };
+
+/** Statistik für EINEN Habit. unit = "day" oder "week" */
+export function habitStats(state, habit, info, today) {
+  if (!info.lastDay) return { ...EMPTY, unit: isFlexible(habit) ? 'week' : 'day' };
+  const first = habit.since > info.start ? habit.since : info.start;
+  if (first > info.lastDay) return { ...EMPTY, unit: isFlexible(habit) ? 'week' : 'day' };
+
+  return isFlexible(habit) ? weeklyStats(state, habit, info, today, first) : dailyStats(state, habit, today, first, info);
+}
+
+function dailyStats(state, habit, today, first, info) {
+  const results = rangeKeys(first, info.lastDay).map((k) => {
+    if (!isDueOn(habit, k)) return null; // Pausentag
+    if (isDone(state, k, habit.id)) return true;
+    return k === today ? null : false; // heute ist noch nicht vorbei
+  });
+  return { ...runs(results), unit: 'day' };
+}
+
+/** Flexible Habits: Eine Woche gilt als geschafft, wenn das Wochenziel erreicht ist. */
+function weeklyStats(state, habit, info, today, first) {
+  const results = [];
+  for (let monday = weekStart(first); monday <= info.lastDay; monday = addDays(monday, 7)) {
+    const from = monday < first ? first : monday;
+    const sunday = addDays(monday, 6);
+    const to = sunday > info.end ? info.end : sunday;
+
+    // Angebrochene Wochen (z. B. Arc startet am Donnerstag) fair behandeln
+    const need = Math.min(habit.schedule.times, diffDays(from, to) + 1);
+    let count = 0;
+    for (let k = from; k <= to && k <= info.lastDay; k = addDays(k, 1)) {
+      if (isDone(state, k, habit.id)) count++;
+    }
+
+    const running = info.status === 'active' && today >= from && today <= to;
+    results.push(count >= need ? true : running ? null : false);
+  }
+  return { ...runs(results), unit: 'week' };
+}
+
+/** Gesamt-Statistik. "Perfekter Tag" = alle fälligen Pflicht-Habits geschafft. */
 export function overallStats(state, info, today) {
   const empty = { currentPerfect: 0, bestPerfect: 0, perfectDays: 0, rate: 0 };
   if (!info.lastDay || !state.habits.length) return empty;
 
-  // Cache, damit jeder Tag nur einmal berechnet wird
-  const cache = new Map();
-  const progress = (k) => {
-    if (!cache.has(k)) cache.set(k, dayProgress(state, k));
-    return cache.get(k);
-  };
-
-  const keys = rangeKeys(info.start, info.lastDay);
   let done = 0;
   let total = 0;
   let perfectDays = 0;
 
-  for (const k of keys) {
-    const p = progress(k);
-    if (k === today && !p.perfect) continue;
+  const results = rangeKeys(info.start, info.lastDay).map((k) => {
+    const p = dayProgress(state, k);
+    if (!p.active) return null;
+    if (k === today && !p.perfect) return null;
     done += p.done;
     total += p.total;
     if (p.perfect) perfectDays++;
-  }
+    return p.perfect;
+  });
 
-  const isPerfect = (k) => progress(k).perfect;
-  return {
-    currentPerfect: currentRun(keys, isPerfect, today),
-    bestPerfect: bestRun(keys, isPerfect),
-    perfectDays,
-    rate: total ? done / total : 0,
-  };
+  const r = runs(results);
+  return { currentPerfect: r.current, bestPerfect: r.best, perfectDays, rate: total ? done / total : 0 };
 }
